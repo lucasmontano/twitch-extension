@@ -43,6 +43,7 @@ const colorWheelRotation = 30
 const channelColors = {}
 const channelCooldowns = {} // rate limit compliance
 let userCooldowns = {} // spam prevention
+let topParticipants = {}
 
 const STRINGS = {
   secretEnv: usingValue("secret"),
@@ -60,6 +61,7 @@ const STRINGS = {
   cooldown: "Please wait before clicking again",
   invalidAuthHeader: "Invalid authorization header",
   invalidJwt: "Invalid JWT",
+  requestingParticipants: "Axios Request!",
 }
 
 ext
@@ -108,6 +110,12 @@ const server = new Hapi.Server(serverOptions)
     method: "GET",
     path: "/color/query",
     handler: colorQueryHandler,
+  })
+
+  server.route({
+    method: "POST",
+    path: "/color/participants",
+    handler: topParticipantsHandler,
   })
 
   // Start the server.
@@ -159,6 +167,38 @@ function verifyAndDecode(header) {
   throw Boom.unauthorized(STRINGS.invalidAuthHeader)
 }
 
+function topParticipantsHandler(req) {
+  // Verify all requests.
+  const payload = verifyAndDecode(req.headers.authorization)
+  const { channel_id: channelId, opaque_user_id: opaqueUserId } = payload
+
+  // Store the color for the channel.
+  let currentColor = channelColors[channelId] || initialColor
+
+  // Bot abuse prevention:  don't allow a user to spam the button.
+  if (userIsInCooldown(opaqueUserId)) {
+    throw Boom.tooManyRequests(STRINGS.cooldown)
+  }
+
+  axios
+    .get("https://montano-twitch-extension.herokuapp.com/")
+    .then(function (response) {
+      // handle success
+      topParticipants = response.data[0]
+    })
+    .catch(function (error) {
+      // handle error
+      console.log(error)
+    })
+    .then(function () {
+      // always executed
+    })
+
+  sendColorBroadcast(channelId)
+
+  return currentColor
+}
+
 function colorCycleHandler(req) {
   // Verify all requests.
   const payload = verifyAndDecode(req.headers.authorization)
@@ -182,27 +222,7 @@ function colorCycleHandler(req) {
   // Broadcast the color change to all other extension instances on this channel.
   attemptColorBroadcast(channelId)
 
-  // TODO: move to a better place
-  getTopParticipant()
-
   return currentColor
-}
-
-function getTopParticipant() {
-  // Make a request for a user with a given ID
-  axios
-    .get("https://montano-twitch-extension.herokuapp.com/")
-    .then(function (response) {
-      // handle success
-      console.log(response)
-    })
-    .catch(function (error) {
-      // handle error
-      console.log(error)
-    })
-    .then(function () {
-      // always executed
-    })
 }
 
 function colorQueryHandler(req) {
@@ -246,7 +266,7 @@ function sendColorBroadcast(channelId) {
   const currentColor = color(channelColors[channelId] || initialColor).hex()
   const body = JSON.stringify({
     content_type: "application/json",
-    message: currentColor,
+    message: topParticipants || "Top participants loading...",
     targets: ["broadcast"],
   })
 
