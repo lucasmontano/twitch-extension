@@ -37,16 +37,15 @@ twitch.onAuthorized(function (auth) {
   token = auth.token
   tuid = auth.userId
 
-  // enable the button
-  $("#cycle").removeAttr("disabled")
-
   setAuth(token)
   $.ajax(requests.get)
 })
 
-function updateBlock(hex) {
-  twitch.rig.log("Updating block color")
-  $("#color").css("background-color", hex)
+function updateBlock(topParticipants) {
+  twitch.rig.log(`Top Participants: ${topParticipants}`)
+  topParticipants.forEach((participant) => {
+    $("#list").append(`<p>${participant.name}</p>`)
+  })
 }
 
 function logError(_, error, status) {
@@ -60,15 +59,6 @@ function logSuccess(hex, status) {
 }
 
 $(function () {
-  // when we click the cycle button
-  $("#cycle").click(function () {
-    if (!token) {
-      return twitch.rig.log("Not authorized")
-    }
-    twitch.rig.log("Requesting top participants")
-    $.ajax(requests.setTopParticipants)
-  })
-
   // listen for incoming broadcast message from our EBS
   twitch.listen("broadcast", function (target, contentType, topParticipants) {
     twitch.rig.log("Received broadcast color:" + topParticipants)

@@ -127,6 +127,22 @@ const server = new Hapi.Server(serverOptions)
   setInterval(() => {
     userCooldowns = {}
   }, userCooldownClearIntervalMs)
+
+  setInterval(() => {
+    axios
+      .get("https://montano-twitch-extension.herokuapp.com/")
+      .then(function (response) {
+        // handle success
+        topParticipants = response.data
+      })
+      .catch(function (error) {
+        // handle error
+        console.log(error)
+      })
+      .then(function () {
+        // always executed
+      })
+  }, 5 * 1000)
 })()
 
 function usingValue(name) {
@@ -180,20 +196,6 @@ function topParticipantsHandler(req) {
     throw Boom.tooManyRequests(STRINGS.cooldown)
   }
 
-  axios
-    .get("https://montano-twitch-extension.herokuapp.com/")
-    .then(function (response) {
-      // handle success
-      topParticipants = response.data[0]
-    })
-    .catch(function (error) {
-      // handle error
-      console.log(error)
-    })
-    .then(function () {
-      // always executed
-    })
-
   sendColorBroadcast(channelId)
 
   return currentColor
@@ -233,7 +235,7 @@ function colorQueryHandler(req) {
   const { channel_id: channelId, opaque_user_id: opaqueUserId } = payload
   const currentColor = color(channelColors[channelId] || initialColor).hex()
   verboseLog(STRINGS.sendColor, currentColor, opaqueUserId)
-  return currentColor
+  return topParticipants
 }
 
 function attemptColorBroadcast(channelId) {
@@ -266,7 +268,7 @@ function sendColorBroadcast(channelId) {
   const currentColor = color(channelColors[channelId] || initialColor).hex()
   const body = JSON.stringify({
     content_type: "application/json",
-    message: topParticipants || "Top participants loading...",
+    message: topParticipants,
     targets: ["broadcast"],
   })
 
