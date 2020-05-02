@@ -98,24 +98,11 @@ if (
 const server = new Hapi.Server(serverOptions)
 
 ;(async () => {
-  // Handle a viewer request to cycle the color.
-  server.route({
-    method: "POST",
-    path: "/color/cycle",
-    handler: colorCycleHandler,
-  })
-
   // Handle a new viewer requesting the color.
   server.route({
     method: "GET",
-    path: "/color/query",
-    handler: colorQueryHandler,
-  })
-
-  server.route({
-    method: "POST",
-    path: "/color/participants",
-    handler: topParticipantsHandler,
+    path: "/participants/query",
+    handler: participantsQueryHandler,
   })
 
   // Start the server.
@@ -138,9 +125,6 @@ const server = new Hapi.Server(serverOptions)
       .catch(function (error) {
         // handle error
         console.log(error)
-      })
-      .then(function () {
-        // always executed
       })
   }, 5 * 1000)
 })()
@@ -183,61 +167,14 @@ function verifyAndDecode(header) {
   throw Boom.unauthorized(STRINGS.invalidAuthHeader)
 }
 
-function topParticipantsHandler(req) {
+function participantsQueryHandler(req) {
   // Verify all requests.
-  const payload = verifyAndDecode(req.headers.authorization)
-  const { channel_id: channelId, opaque_user_id: opaqueUserId } = payload
-
-  // Store the color for the channel.
-  let currentColor = channelColors[channelId] || initialColor
-
-  // Bot abuse prevention:  don't allow a user to spam the button.
-  if (userIsInCooldown(opaqueUserId)) {
-    throw Boom.tooManyRequests(STRINGS.cooldown)
-  }
-
-  sendColorBroadcast(channelId)
-
-  return currentColor
-}
-
-function colorCycleHandler(req) {
-  // Verify all requests.
-  const payload = verifyAndDecode(req.headers.authorization)
-  const { channel_id: channelId, opaque_user_id: opaqueUserId } = payload
-
-  // Store the color for the channel.
-  let currentColor = channelColors[channelId] || initialColor
-
-  // Bot abuse prevention:  don't allow a user to spam the button.
-  if (userIsInCooldown(opaqueUserId)) {
-    throw Boom.tooManyRequests(STRINGS.cooldown)
-  }
-
-  // Rotate the color as if on a color wheel.
-  verboseLog(STRINGS.cyclingColor, channelId, opaqueUserId)
-  currentColor = color(currentColor).rotate(colorWheelRotation).hex()
-
-  // Save the new color for the channel.
-  channelColors[channelId] = currentColor
-
-  // Broadcast the color change to all other extension instances on this channel.
-  attemptColorBroadcast(channelId)
-
-  return currentColor
-}
-
-function colorQueryHandler(req) {
-  // Verify all requests.
-  const payload = verifyAndDecode(req.headers.authorization)
-
-  // Get the color for the channel from the payload and return it.
-  const { channel_id: channelId, opaque_user_id: opaqueUserId } = payload
-  const currentColor = color(channelColors[channelId] || initialColor).hex()
-  verboseLog(STRINGS.sendColor, currentColor, opaqueUserId)
+  // const payload = verifyAndDecode(req.headers.authorization)
   return topParticipants
 }
 
+// TODO: broadcast top participants with cool-down logic
+/*
 function attemptColorBroadcast(channelId) {
   // Check the cool-down to determine if it's okay to send now.
   const now = Date.now()
@@ -317,3 +254,4 @@ function userIsInCooldown(opaqueUserId) {
   userCooldowns[opaqueUserId] = now + userCooldownMs
   return false
 }
+*/

@@ -7,24 +7,21 @@ var twitch = window.Twitch.ext
 
 // create the request options for our Twitch API calls
 var requests = {
-  set: createRequest("POST", "cycle"),
-  get: createRequest("GET", "query"),
-  setTopParticipants: createRequest("POST", "participants"),
+  getParticipants: createRequest("GET", "query"),
 }
 
 function createRequest(type, method) {
   return {
     type: type,
-    url: location.protocol + "//localhost:8081/color/" + method,
-    success: updateBlock,
+    url: location.protocol + "//localhost:8081/participants/" + method,
+    success: renderTopParticipants,
     error: logError,
   }
 }
 
 function setAuth(token) {
   Object.keys(requests).forEach((req) => {
-    twitch.rig.log("Setting auth headers")
-    requests[req].headers = { Authorization: "Bearer " + token }
+    requests[req].headers = { Authorization: `Bearer ${token}` }
   })
 }
 
@@ -38,11 +35,10 @@ twitch.onAuthorized(function (auth) {
   tuid = auth.userId
 
   setAuth(token)
-  $.ajax(requests.get)
+  $.ajax(requests.getParticipants)
 })
 
-function updateBlock(topParticipants) {
-  twitch.rig.log(`Top Participants: ${topParticipants}`)
+function renderTopParticipants(topParticipants) {
   topParticipants.forEach((participant) => {
     $("#list").append(`<p>${participant.name}</p>`)
   })
@@ -62,5 +58,6 @@ $(function () {
   // listen for incoming broadcast message from our EBS
   twitch.listen("broadcast", function (target, contentType, topParticipants) {
     twitch.rig.log("Received broadcast color:" + topParticipants)
+    renderTopParticipants(topParticipants)
   })
 })
