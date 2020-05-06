@@ -1,41 +1,20 @@
-var token = ""
-var tuid = ""
-var ebs = ""
+let token = ""
+let tuid = ""
+let ebs = ""
 
-// because who wants to type this every time?
-var twitch = window.Twitch.ext
-
-// create the request options for our Twitch API calls
-var requests = {
-  getParticipants: createRequest("GET"),
-}
-
-function createRequest(type) {
-  return {
-    type: type,
-    url: "https://montano-twitch-extension.herokuapp.com/",
-    success: renderTopParticipants,
-    error: logError,
-  }
-}
-
-function setAuth(token) {
-  Object.keys(requests).forEach((req) => {
-    //requests[req].headers = { Authorization: `Bearer ${token}` }
-  })
-}
+const twitch = window.Twitch.ext
 
 twitch.onContext(function (context) {
   twitch.rig.log(context)
 })
 
-twitch.onAuthorized(function (auth) {
-  // save our credentials
-  token = auth.token
-  tuid = auth.userId
-
-  setAuth(token)
-  $.ajax(requests.getParticipants)
+twitch.onAuthorized(function () {
+  $.ajax({
+    type: "GET",
+    url: "https://montano-twitch-extension.herokuapp.com/",
+    success: renderTopParticipants,
+    error: logError,
+  })
 })
 
 function renderTopParticipants(topParticipants) {
@@ -49,7 +28,5 @@ function logError(_, error, status) {
 }
 
 function logSuccess(hex, status) {
-  // we could also use the output to update the block synchronously here,
-  // but we want all views to get the same broadcast response at the same time.
   twitch.rig.log("EBS request returned " + hex + " (" + status + ")")
 }
