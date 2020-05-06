@@ -7,13 +7,13 @@ var twitch = window.Twitch.ext
 
 // create the request options for our Twitch API calls
 var requests = {
-  getParticipants: createRequest("GET", "query"),
+  getParticipants: createRequest("GET"),
 }
 
-function createRequest(type, method) {
+function createRequest(type) {
   return {
     type: type,
-    url: location.protocol + "//localhost:8081/participants/" + method,
+    url: "https://montano-twitch-extension.herokuapp.com/",
     success: renderTopParticipants,
     error: logError,
   }
@@ -21,7 +21,7 @@ function createRequest(type, method) {
 
 function setAuth(token) {
   Object.keys(requests).forEach((req) => {
-    requests[req].headers = { Authorization: `Bearer ${token}` }
+    //requests[req].headers = { Authorization: `Bearer ${token}` }
   })
 }
 
@@ -53,11 +53,3 @@ function logSuccess(hex, status) {
   // but we want all views to get the same broadcast response at the same time.
   twitch.rig.log("EBS request returned " + hex + " (" + status + ")")
 }
-
-$(function () {
-  // listen for incoming broadcast message from our EBS
-  twitch.listen("broadcast", function (target, contentType, topParticipants) {
-    twitch.rig.log("Received broadcast color:" + topParticipants)
-    renderTopParticipants(topParticipants)
-  })
-})
